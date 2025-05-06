@@ -20,15 +20,15 @@ const Star = styled(motion.div)`
   height: ${props => props.size}px;
   background-color: var(--reward-color);
   clip-path: polygon(
-    50% 0%, 
-    61% 35%, 
-    98% 35%, 
-    68% 57%, 
-    79% 91%, 
-    50% 70%, 
-    21% 91%, 
-    32% 57%, 
-    2% 35%, 
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
     39% 35%
   );
   pointer-events: none;
@@ -36,7 +36,7 @@ const Star = styled(motion.div)`
 `;
 
 // Points popup
-const PointsPopup = styled(motion.div)`
+const PointsPopupContainer = styled(motion.div)`
   position: absolute;
   color: var(--reward-color);
   font-weight: bold;
@@ -61,7 +61,7 @@ const StreakIndicator = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   span {
     margin-left: 5px;
   }
@@ -80,16 +80,16 @@ const PulseEffect = styled(motion.div)`
   z-index: 1;
 `;
 
-// Confetti effect
-export const Confetti = ({ isActive, duration = 3000 }) => {
+// Confetti effect component
+const ConfettiEffect = ({ isActive, duration = 3000 }) => {
   const [particles, setParticles] = useState([]);
-  
+
   useEffect(() => {
     if (isActive) {
       const newParticles = [];
       const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff1493'];
       const shapes = ['circle', 'square'];
-      
+
       // Create 50 particles
       for (let i = 0; i < 50; i++) {
         newParticles.push({
@@ -106,18 +106,18 @@ export const Confetti = ({ isActive, duration = 3000 }) => {
           rotation: Math.random() * 360
         });
       }
-      
+
       setParticles(newParticles);
-      
+
       // Clear particles after duration
       const timer = setTimeout(() => {
         setParticles([]);
       }, duration);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isActive, duration]);
-  
+
   return (
     <AnimatePresence>
       {particles.map(particle => (
@@ -126,22 +126,22 @@ export const Confetti = ({ isActive, duration = 3000 }) => {
           size={particle.size}
           color={particle.color}
           shape={particle.shape}
-          initial={{ 
-            x: particle.x, 
-            y: particle.y, 
+          initial={{
+            x: particle.x,
+            y: particle.y,
             rotate: 0,
-            opacity: 1 
+            opacity: 1
           }}
-          animate={{ 
-            x: particle.x + particle.velocity.x * 50, 
+          animate={{
+            x: particle.x + particle.velocity.x * 50,
             y: window.innerHeight + 50,
             rotate: particle.rotation,
-            opacity: 0 
+            opacity: 0
           }}
           exit={{ opacity: 0 }}
-          transition={{ 
+          transition={{
             duration: Math.random() * 2 + 1,
-            ease: "easeOut" 
+            ease: "easeOut"
           }}
         />
       ))}
@@ -152,11 +152,11 @@ export const Confetti = ({ isActive, duration = 3000 }) => {
 // Stars reward effect
 export const StarsReward = ({ count = 3, isActive, onComplete }) => {
   const [stars, setStars] = useState([]);
-  
+
   useEffect(() => {
     if (isActive) {
       const newStars = [];
-      
+
       // Create stars
       for (let i = 0; i < count; i++) {
         newStars.push({
@@ -167,44 +167,44 @@ export const StarsReward = ({ count = 3, isActive, onComplete }) => {
           delay: i * 0.2
         });
       }
-      
+
       setStars(newStars);
-      
+
       // Call onComplete after animation
       const timer = setTimeout(() => {
         if (onComplete) onComplete();
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isActive, count, onComplete]);
-  
+
   return (
     <AnimatePresence>
       {stars.map(star => (
         <Star
           key={star.id}
           size={star.size}
-          initial={{ 
-            x: star.x, 
+          initial={{
+            x: star.x,
             y: window.innerHeight + 100,
             scale: 0.5,
-            opacity: 0 
+            opacity: 0
           }}
-          animate={{ 
-            x: star.x, 
+          animate={{
+            x: star.x,
             y: star.y,
             scale: 1,
-            opacity: 1 
+            opacity: 1
           }}
-          exit={{ 
+          exit={{
             y: star.y - 100,
-            opacity: 0 
+            opacity: 0
           }}
-          transition={{ 
+          transition={{
             delay: star.delay,
             duration: 0.5,
-            ease: "backOut" 
+            ease: "backOut"
           }}
         />
       ))}
@@ -217,14 +217,14 @@ export const PointsPopup = ({ points, x, y, isActive }) => {
   return (
     <AnimatePresence>
       {isActive && (
-        <PointsPopup
+        <PointsPopupContainer
           initial={{ x, y, opacity: 0, scale: 0.5 }}
           animate={{ y: y - 50, opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8 }}
         >
           +{points}
-        </PointsPopup>
+        </PointsPopupContainer>
       )}
     </AnimatePresence>
   );
@@ -255,11 +255,11 @@ export const Pulse = ({ isActive }) => {
       {isActive && (
         <PulseEffect
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
+          animate={{
             opacity: [0, 0.7, 0],
             scale: [0.8, 1.2, 1.5]
           }}
-          transition={{ 
+          transition={{
             duration: 1.5,
             repeat: Infinity,
             repeatType: "loop"
@@ -270,10 +270,5 @@ export const Pulse = ({ isActive }) => {
   );
 };
 
-export default {
-  Confetti,
-  StarsReward,
-  PointsPopup,
-  Streak,
-  Pulse
-};
+// Export the Confetti component with a different name to avoid conflicts
+export const Confetti = ConfettiEffect;

@@ -14,7 +14,7 @@ const LevelContainer = styled.div`
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  
+
   @media (max-width: 480px) {
     padding: var(--spacing-sm);
   }
@@ -48,7 +48,7 @@ const GameArea = styled(motion.div)`
   flex-direction: column;
   align-items: center;
   margin-bottom: var(--spacing-lg);
-  
+
   @media (max-width: 480px) {
     padding: var(--spacing-md);
   }
@@ -61,7 +61,7 @@ const NumbersContainer = styled.div`
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
   width: 100%;
-  
+
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: center;
@@ -80,7 +80,7 @@ const Backpack = styled(motion.div)`
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  
+
   &:before {
     content: '';
     position: absolute;
@@ -90,7 +90,7 @@ const Backpack = styled(motion.div)`
     top: -15px;
     border-radius: 20px;
   }
-  
+
   &:after {
     content: '';
     position: absolute;
@@ -130,7 +130,7 @@ const NumberBadge = styled(motion.div)`
   font-size: 1.2rem;
   box-shadow: var(--box-shadow);
   cursor: pointer;
-  
+
   @media (max-width: 480px) {
     width: 40px;
     height: 40px;
@@ -163,13 +163,14 @@ const numberOptions = Array.from({ length: 10 }, (_, i) => ({
   label: `${i + 1}`
 }));
 
-const Level2 = ({ onComplete }) => {
+const Level2 = ({ onComplete, addPoints }) => {
   const [numbers, setNumbers] = useState([null, null, null]);
   const [selectedNumbers, setSelectedNumbers] = useState([]);
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [showZoom, setShowZoom] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleNumberChange = (index, e) => {
     const newNumbers = [...numbers];
@@ -193,16 +194,22 @@ const Level2 = ({ onComplete }) => {
     // Check if at least two of the selected numbers are even
     const selectedValues = selectedNumbers.map(index => numbers[index]);
     const evenCount = selectedValues.filter(num => num % 2 === 0).length;
-    
+
     setShowResult(true);
     const success = evenCount >= 2;
     setResult(success);
-    
+
     if (success) {
+      // Add points for successful proof
+      if (addPoints) {
+        const pointsEarned = 50 * selectedNumbers.length;
+        addPoints(pointsEarned);
+      }
+
       // Show zoom animation
       setShowZoom(true);
       setTimeout(() => setShowZoom(false), 1500);
-      
+
       // Show explanation after success
       setTimeout(() => {
         setShowExplanation(true);
@@ -211,8 +218,24 @@ const Level2 = ({ onComplete }) => {
   };
 
   const handleNextLevel = () => {
+    console.log('Next level button clicked');
+
+    // Prevent multiple clicks
+    if (isTransitioning) {
+      console.log('Already transitioning to next level, ignoring click');
+      return;
+    }
+
+    setIsTransitioning(true);
+
     if (onComplete) {
-      onComplete();
+      // Call onComplete with a slight delay to prevent double-clicks
+      setTimeout(() => {
+        onComplete();
+      }, 100);
+    } else {
+      console.error('onComplete function is not defined!');
+      setIsTransitioning(false); // Reset if there's an error
     }
   };
 
@@ -225,16 +248,16 @@ const Level2 = ({ onComplete }) => {
       >
         Level 2: Aggregation Station
       </Title>
-      
+
       <InstructionText
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
       >
-        Next mission, Detective! You've got three secret numbers now. Prove that at least two of them are even, 
+        Next mission, Detective! You've got three secret numbers now. Prove that at least two of them are even,
         but don't tell me the numbers. Use the Proof Combiner to mix your proofs into one big proof. Let's save time!
       </InstructionText>
-      
+
       <GameArea
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -252,7 +275,7 @@ const Level2 = ({ onComplete }) => {
             />
           ))}
         </NumbersContainer>
-        
+
         {numbers.every(num => num !== null) && (
           <>
             <p>Click on your numbers to add them to the Proof Combiner:</p>
@@ -273,7 +296,7 @@ const Level2 = ({ onComplete }) => {
                 </NumberBadge>
               ))}
             </NumbersContainer>
-            
+
             <Backpack
               animate={selectedNumbers.length > 0 ? {
                 scale: [1, 1.05, 1],
@@ -283,7 +306,7 @@ const Level2 = ({ onComplete }) => {
               <BackpackPocket>
                 {selectedNumbers.length > 0 ? `${selectedNumbers.length} proofs` : 'Empty'}
               </BackpackPocket>
-              
+
               <AnimatePresence>
                 {showZoom && (
                   <ZoomAnimation
@@ -297,25 +320,25 @@ const Level2 = ({ onComplete }) => {
                 )}
               </AnimatePresence>
             </Backpack>
-            
-            <Button 
+
+            <Button
               onClick={handleCombineClick}
               disabled={selectedNumbers.length < 2}
               whileHover={{ scale: 1.05, backgroundColor: '#ff8c00' }}
             >
               Combine and Prove!
             </Button>
-            
+
             <AnimatePresence>
               {showResult && (
-                <ResultMessage 
+                <ResultMessage
                   success={result}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  {result 
-                    ? "Success! At least two of your numbers are even!" 
+                  {result
+                    ? "Success! At least two of your numbers are even!"
                     : "Not quite. You need at least two even numbers. Try again!"}
                 </ResultMessage>
               )}
@@ -323,31 +346,32 @@ const Level2 = ({ onComplete }) => {
           </>
         )}
       </GameArea>
-      
+
       <AnimatePresence>
         {showExplanation && (
           <>
             <ExplanationCard title="What is Aggregation?">
               <p>
-                Wow, you're fast! Aggregation is like putting all your proofs in one big backpack 
-                instead of carrying them one by one. It saves time and energy because we only check 
+                Wow, you're fast! Aggregation is like putting all your proofs in one big backpack
+                instead of carrying them one by one. It saves time and energy because we only check
                 one big proof instead of lots of little ones.
               </p>
             </ExplanationCard>
-            
+
             <ExplanationCard title="How LayerEdge Uses It">
               <p>
-                LayerEdge mixes lots of zk-proofs into one, so checking them on Bitcoin is cheaper 
+                LayerEdge mixes lots of zk-proofs into one, so checking them on Bitcoin is cheaper
                 and quicker. It's like doing all your homework in one go!
               </p>
             </ExplanationCard>
-            
-            <Button 
+
+            <Button
               onClick={handleNextLevel}
               variant="secondary"
-              whileHover={{ scale: 1.05 }}
+              disabled={isTransitioning}
+              whileHover={isTransitioning ? {} : { scale: 1.05 }}
             >
-              Continue to Next Level
+              {isTransitioning ? 'Loading...' : 'Continue to Next Level'}
             </Button>
           </>
         )}

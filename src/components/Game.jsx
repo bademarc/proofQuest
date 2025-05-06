@@ -19,7 +19,8 @@ const GameContainer = styled.div`
   padding: var(--spacing-md);
   box-sizing: border-box;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   @media (max-width: 480px) {
     padding: var(--spacing-sm);
@@ -116,6 +117,7 @@ const Game = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showStars, setShowStars] = useState(false);
   const [levelStars, setLevelStars] = useState([0, 0, 0, 0, 0]); // Stars earned per level
+  const [isLevelTransitioning, setIsLevelTransitioning] = useState(false);
   const totalLevels = 5;
 
   // Load saved progress from localStorage
@@ -145,6 +147,16 @@ const Game = () => {
   }, [score, currentLevel, levelStars]);
 
   const handleLevelComplete = (starsEarned = 3) => {
+    console.log(`Level ${currentLevel} completed with ${starsEarned} stars`);
+
+    // Prevent multiple level transitions
+    if (isLevelTransitioning) {
+      console.log('Already transitioning between levels, ignoring completion');
+      return;
+    }
+
+    setIsLevelTransitioning(true);
+
     // Update stars for the completed level
     const newLevelStars = [...levelStars];
     newLevelStars[currentLevel - 1] = Math.max(starsEarned, levelStars[currentLevel - 1]);
@@ -159,21 +171,22 @@ const Game = () => {
 
     // Show reward animations
     setShowConfetti(true);
+
+    // Play reward sounds immediately
+    playLevelComplete();
+    vibrate(VIBRATION_PATTERNS.LEVEL_COMPLETE);
+
     setTimeout(() => {
       setShowStars(true);
-
-      // Play reward sounds
-      playLevelComplete();
-      vibrate(VIBRATION_PATTERNS.LEVEL_COMPLETE);
 
       // Move to next level after animations
       setTimeout(() => {
         setShowConfetti(false);
         setShowStars(false);
 
-        // For now, we'll just increment the level
-        // In the future, we'll add more levels
+        // Increment the level
         setCurrentLevel(prevLevel => {
+          console.log(`Moving from level ${prevLevel} to ${prevLevel === totalLevels ? 1 : prevLevel + 1}`);
           if (prevLevel === totalLevels) {
             // Reset streak when game is completed
             setStreak(0);
@@ -181,6 +194,11 @@ const Game = () => {
           }
           return prevLevel + 1;
         });
+
+        // Reset transition state after a short delay to ensure level has changed
+        setTimeout(() => {
+          setIsLevelTransitioning(false);
+        }, 300);
       }, 2000);
     }, 500);
   };
@@ -270,7 +288,7 @@ const Game = () => {
         </ScoreContainer>
       </Header>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {currentLevel === 1 && (
           <motion.div
             key="level1"

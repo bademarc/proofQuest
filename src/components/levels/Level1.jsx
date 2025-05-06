@@ -217,15 +217,39 @@ const numberOptions = Array.from({ length: 10 }, (_, i) => ({
   label: `${i + 1}`
 }));
 
-const Level1 = ({ onComplete }) => {
+// Sparkle effect component
+const Sparkles = styled(motion.div)`
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  font-size: 20px;
+`;
+
+const Level1 = ({ onComplete, addPoints }) => {
   const [secretNumber, setSecretNumber] = useState('');
   const [showProof, setShowProof] = useState(false);
   const [result, setResult] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [hatShaking, setHatShaking] = useState(false);
   const [wandWaving, setWandWaving] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [sparkles, setSparkles] = useState([]);
+  const [attempts, setAttempts] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Clean up sparkles after animation
+  useEffect(() => {
+    if (sparkles.length > 0) {
+      const timer = setTimeout(() => {
+        setSparkles([]);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [sparkles]);
 
   const handleNumberChange = (e) => {
+    console.log('Number selected:', e.target.value);
     setSecretNumber(e.target.value);
     setShowProof(false);
     setResult(null);
@@ -234,16 +258,45 @@ const Level1 = ({ onComplete }) => {
     // Animate hat when number is selected
     setHatShaking(true);
     setTimeout(() => setHatShaking(false), 1000);
+
+    // Create sparkles around the hat
+    const newSparkles = [];
+    for (let i = 0; i < 5; i++) {
+      newSparkles.push({
+        id: Date.now() + i,
+        x: Math.random() * 200 - 100,
+        y: Math.random() * 100 - 50,
+        emoji: ['✨', '⭐', '💫', '🌟'][Math.floor(Math.random() * 4)]
+      });
+    }
+    setSparkles(newSparkles);
   };
 
   const handleProveClick = () => {
+    console.log('Prove button clicked, secret number:', secretNumber);
     setShowProof(true);
+    setAttempts(prev => prev + 1);
 
     // Check if number is even
     const isEven = parseInt(secretNumber) % 2 === 0;
+    console.log('Is number even?', isEven);
     setResult(isEven);
 
     if (isEven) {
+      console.log('Success! Number is even');
+      // Play success sound
+      playSuccess();
+      vibrate(VIBRATION_PATTERNS.SUCCESS);
+
+      // Add points - more points for fewer attempts
+      const pointsEarned = Math.max(100 - (attempts * 20), 20);
+      console.log('Points earned:', pointsEarned);
+      if (addPoints) addPoints(pointsEarned);
+
+      // Show confetti
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+
       // Animate wand when successful
       setTimeout(() => {
         setWandWaving(true);
@@ -252,14 +305,40 @@ const Level1 = ({ onComplete }) => {
 
       // Show explanation after success
       setTimeout(() => {
+        console.log('Showing explanation');
         setShowExplanation(true);
       }, 2500);
+    } else {
+      console.log('Error! Number is odd');
+      // Play error sound
+      playError();
+      vibrate(VIBRATION_PATTERNS.ERROR);
     }
   };
 
   const handleNextLevel = () => {
+    console.log('Next level button clicked');
+
+    // Prevent multiple clicks
+    if (isTransitioning) {
+      console.log('Already transitioning to next level, ignoring click');
+      return;
+    }
+
+    setIsTransitioning(true);
+
     if (onComplete) {
-      onComplete();
+      // Calculate stars based on attempts
+      const starsEarned = attempts <= 1 ? 3 : attempts <= 3 ? 2 : 1;
+      console.log('Stars earned:', starsEarned);
+
+      // Call onComplete with a slight delay to prevent double-clicks
+      setTimeout(() => {
+        onComplete(starsEarned);
+      }, 100);
+    } else {
+      console.error('onComplete function is not defined!');
+      setIsTransitioning(false); // Reset if there's an error
     }
   };
 
@@ -286,14 +365,58 @@ const Level1 = ({ onComplete }) => {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.6, duration: 0.5 }}
+        whileHover={{ boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)' }}
       >
         <MagicianHat
           animate={hatShaking ? {
             rotate: [0, -10, 10, -10, 10, 0],
             y: [0, -5, 0, -5, 0]
-          } : {}}
+          } : {
+            y: [0, -3, 0],
+            transition: {
+              duration: 2,
+              repeat: Infinity,
+              repeatType: "reverse"
+            }
+          }}
           transition={{ duration: 1 }}
         />
+
+        {/* Render sparkles */}
+        <AnimatePresence>
+          {sparkles.map(sparkle => (
+            <motion.div
+              key={sparkle.id}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                fontSize: '24px',
+                zIndex: 10,
+                pointerEvents: 'none'
+              }}
+              initial={{
+                x: 0,
+                y: 0,
+                scale: 0,
+                opacity: 0
+              }}
+              animate={{
+                x: sparkle.x,
+                y: sparkle.y,
+                scale: [0, 1.2, 1],
+                opacity: [0, 1, 0]
+              }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 1.5,
+                ease: "easeOut"
+              }}
+            >
+              {sparkle.emoji}
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         <div style={{ width: '100%', maxWidth: '250px', margin: '0 auto' }}>
           <Dropdown
@@ -308,15 +431,10 @@ const Level1 = ({ onComplete }) => {
         <Button
           onClick={handleProveClick}
           disabled={!secretNumber}
-          whileHover={{ scale: 1.05, backgroundColor: '#ff8c00' }}
+          variant="primary"
+          fullWidth={false}
           style={{
-            backgroundColor: '#6a5acd',
-            color: 'white',
-            padding: '12px 25px',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            marginTop: '20px',
-            textTransform: 'uppercase'
+            marginTop: '20px'
           }}
         >
           Prove It's Even!
@@ -325,10 +443,10 @@ const Level1 = ({ onComplete }) => {
         <AnimatePresence>
           {showProof && (
             <ProofBox
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, height: 0, y: 20 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -20 }}
+              transition={{ duration: 0.5, type: "spring" }}
             >
               <p>If I divide your number by 2, there's no leftover pieces!</p>
             </ProofBox>
@@ -339,9 +457,17 @@ const Level1 = ({ onComplete }) => {
           {result !== null && (
             <ResultMessage
               success={result}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                transition: {
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 15
+                }
+              }}
+              exit={{ opacity: 0, scale: 0.8 }}
             >
               {result
                 ? "That's correct! Your number is even!"
@@ -352,18 +478,30 @@ const Level1 = ({ onComplete }) => {
 
         {result && (
           <MagicWand
+            className={wandWaving ? 'active' : ''}
             animate={wandWaving ? {
               rotate: [0, 20, -20, 20, -20, 0],
-              x: [0, 10, -10, 10, -10, 0]
-            } : {}}
+              x: [0, 10, -10, 10, -10, 0],
+              scale: [1, 1.1, 1]
+            } : {
+              rotate: [0, 2, 0, -2, 0],
+              transition: {
+                duration: 3,
+                repeat: Infinity,
+                repeatType: "reverse"
+              }
+            }}
             transition={{ duration: 1.5 }}
           />
         )}
+
+        {/* Confetti effect */}
+        <Confetti isActive={showConfetti} />
       </GameArea>
 
       <AnimatePresence>
         {showExplanation && (
-          <>
+          <div style={{ position: 'relative', zIndex: 50 }}>
             <ExplanationCard title="What is a zk-Proof?">
               <p>
                 Great job! You just did a zero-knowledge proof (or zk-proof). It's like a magic trick:
@@ -383,11 +521,17 @@ const Level1 = ({ onComplete }) => {
             <Button
               onClick={handleNextLevel}
               variant="secondary"
-              whileHover={{ scale: 1.05 }}
+              fullWidth={false}
+              disabled={isTransitioning}
+              style={{
+                marginTop: '20px',
+                position: 'relative',
+                zIndex: 51
+              }}
             >
-              Continue to Next Level
+              {isTransitioning ? 'Loading...' : 'Continue to Next Level'}
             </Button>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </LevelContainer>

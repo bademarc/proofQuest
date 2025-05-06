@@ -47,6 +47,7 @@ const GlobalStyles = createGlobalStyle`
     margin: 0;
     padding: 0;
     overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
+    overflow-y: auto;
   }
 
   body {
@@ -58,8 +59,9 @@ const GlobalStyles = createGlobalStyle`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     overflow-x: hidden;
+    overflow-y: auto;
     font-size: 16px;
     line-height: 1.6;
     touch-action: manipulation; /* Improve touch responsiveness */
@@ -70,6 +72,7 @@ const GlobalStyles = createGlobalStyle`
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
   }
 
   h1 {
